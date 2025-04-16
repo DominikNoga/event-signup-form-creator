@@ -1,0 +1,44 @@
+.event-organizer {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  h1 {
+    text-align: center;
+  }
+
+  .config-section {
+    margin-top: 2rem;
+    input {
+      padding: 0.5rem;
+      margin-right: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+    }
+    ul {
+      margin-top: 1rem;
+      list-style: disc;
+      padding-left: 1.5rem;
+    }
+  }
+
+  .share-section {
+    margin-top: 2rem;
+    button {
+      padding: 0.5rem 1.5rem;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .copy-feedback {
+      margin-left: 1rem;
+      color: green;
+    }
+  }
+}
