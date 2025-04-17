@@ -7,36 +7,77 @@ const EventCreatePage: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [verified, setVerified] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const validateEmail = (email: string) => {
-    const re = /^\S+@\S+\.\S+$/;
-    return re.test(email);
-  };
+  const validateEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleStartVerification = async () => {
+    setError('');
     if (!name || !description || !email) {
-      setError('All fields are required.');
-      return;
+      return setError('All fields are required.');
     }
     if (!validateEmail(email)) {
-      setError('Invalid email format.');
-      return;
+      return setError('Invalid email format.');
     }
 
+    try {
+      setLoading(true);
+      await axios.post('http://localhost:3001/api/verify/request', { email });
+      setCodeSent(true);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Something went wrong.');
+      } else {
+        setError('Unexpected error occurred.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmCode = async () => {
+    setError('');
+    if (!code) return setError('Please enter the code sent to your email.');
+
+    try {
+      setLoading(true);
+      const res = await axios.post('http://localhost:3001/api/verify/confirm', { email, code });
+      if (res.data.verified) {
+        setVerified(true);
+        await createEvent();
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Something went wrong.');
+      } else {
+        setError('Unexpected error occurred.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createEvent = async () => {
     try {
       const res = await axios.post('http://localhost:3001/api/events', {
         name,
         description,
+        email,
         max_selections: 2,
         max_per_option: 25,
       });
       navigate(`/event/${res.data.eventId}/organizer`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error creating event.');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Something went wrong.');
+      } else {
+        setError('Unexpected error occurred.');
+      }
     }
   };
 
@@ -51,7 +92,7 @@ const EventCreatePage: React.FC = () => {
         <button onClick={() => navigate('/event/1')}>Join as Participant</button>
       </div>
 
-      <form id="event-form" onSubmit={handleSubmit} className="create-form">
+      <form id="event-form" className="create-form" onSubmit={(e) => e.preventDefault()}>
         <h2>Create a New Event</h2>
         {error && <div className="error">{error}</div>}
         <label>
@@ -66,7 +107,24 @@ const EventCreatePage: React.FC = () => {
           Organizer Email:
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
-        <button type="submit">Create Event</button>
+
+        {!codeSent ? (
+          <button type="button" onClick={handleStartVerification} disabled={loading}>
+            {loading ? 'Sending Code...' : 'Verify Email & Continue'}
+          </button>
+        ) : !verified ? (
+          <>
+            <label>
+              Enter 6-digit Verification Code:
+              <input type="text" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} />
+            </label>
+            <button type="button" onClick={handleConfirmCode} disabled={loading}>
+              {loading ? 'Verifying...' : 'Confirm & Create Event'}
+            </button>
+          </>
+        ) : (
+          <p className="success">Event created successfully!</p>
+        )}
       </form>
     </div>
   );
